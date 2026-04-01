@@ -1241,11 +1241,11 @@ function renderHistoryPage(){
     });
   }
 
-  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" ondblclick="loadEntry(${h.id})" title="Double-click to open record" style="cursor:default;">
+  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" ondblclick="loadEntry(${h.id})" title="Double-click to open record" style="cursor:pointer;">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
-    <td onclick="event.stopPropagation()" style="padding:4px 8px;">
+    <td ondblclick="event.stopPropagation()" style="padding:4px 8px;">
       <select class="status-inline-select" onchange="updateStatusFromHistory(${h.id},this.value)" style="color:inherit;">
         ${['No Action Yet','Available','Assigned','Retained','Sold'].map(s=>`<option value="${s}" ${(h.meta.status||'No Action Yet')===s?'selected':''}>${s}</option>`).join('')}
       </select>
@@ -1315,6 +1315,13 @@ function renderHistoryPage(){
   });
 
   body.innerHTML=html;
+  // Attach double-click to all table rows
+  body.querySelectorAll('tr[data-id]').forEach(function(tr){
+    tr.addEventListener('dblclick', function(e){
+      if(e.target.closest('button')||e.target.closest('select')) return;
+      loadEntry(parseInt(tr.getAttribute('data-id')));
+    });
+  });
 }
 
 // ── BACKUP & RESTORE ──
