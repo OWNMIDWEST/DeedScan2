@@ -1196,6 +1196,14 @@ function updateGISLink(county,mapNum){
 }
 
 // ── HISTORY PAGE ──
+function getRecordedYear(h){
+  var rd = h.data && h.data['Recorded Date'];
+  if(!rd || rd==='—') return new Date(h.id).getFullYear();
+  // Try to parse year from various date formats
+  var m = String(rd).match(/(20\d\d)/);
+  return m ? parseInt(m[1]) : new Date(h.id).getFullYear();
+}
+
 function renderHistoryPage(){
   const search=(document.getElementById('histSearch').value||'').toLowerCase();
   const countyFilter=document.getElementById('histCountyFilter').value;
@@ -1296,12 +1304,12 @@ function renderHistoryPage(){
   sortedCounties.forEach(county=>{
     const group=countyGroups[county];
     const cid='cs-'+county.replace(/ /g,'-');
-    const years=[...new Set(group.map(h=>new Date(h.id).getFullYear()))].sort((a,b)=>b-a);
+    const years=[...new Set(group.map(h=>getRecordedYear(h)))].sort((a,b)=>b-a);
     const activeYear = countyYearState[county] !== undefined ? countyYearState[county] : years[0];
     const yearTabsHtml = years.length > 1
       ? `<div class="year-tabs">${years.map(y=>`<button class="year-tab${y===activeYear?' active':''}" onclick="event.stopPropagation();setCountyYear('${county}',${y})">${y}</button>`).join('')}</div>`
       : `<span style="font-size:10px;color:rgba(255,255,255,0.6);margin-left:6px">${years[0]||''}</span>`;
-    const fg = group.filter(h => new Date(h.id).getFullYear() === activeYear);
+    const fg = group.filter(h => getRecordedYear(h) === activeYear);
 
     html+=`<div class="county-section" id="${cid}">
       <div class="county-section-header">
