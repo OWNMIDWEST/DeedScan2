@@ -1319,6 +1319,12 @@ function renderHistoryPage(){
   });
 
   body.innerHTML=html;
+  body.addEventListener('dblclick', function(e){
+    if(e.target.closest('button')||e.target.closest('select')||e.target.closest('a')) return;
+    var tr=e.target.closest('tr[data-id]');
+    if(!tr) return;
+    loadEntry(parseInt(tr.getAttribute('data-id')));
+  });
 
 
 }
