@@ -186,7 +186,7 @@
   .action-btn:disabled{opacity:0.35;cursor:not-allowed;}
 
   /* HISTORY PAGE */
-  #historyPage{flex-direction:column;height:calc(100vh - 56px);max-height:calc(100vh - 56px);background:var(--surface2);overflow:hidden;}
+  #historyPage{flex-direction:column;height:calc(100vh - 56px);max-height:calc(100vh - 56px);background:var(--surface2);overflow:hidden;display:flex;}
   .hist-toolbar{display:flex;align-items:center;gap:8px;padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
   .hist-toolbar-title{font-size:13px;font-weight:600;color:var(--text);user-select:none;}
   .hist-filter{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 9px;color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;transition:border-color 0.15s;}
@@ -380,10 +380,10 @@
       </div>
       <span id="usageCostLabel">~$0.00</span>
     </div>
-    <div style="display:flex;gap:4px;">
-<button style="padding:6px 24px;background:#fff;color:#1a3a5c;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;" id="btnScan">Scan</button>
-<button style="padding:6px 24px;background:rgba(255,255,255,0.15);color:#c8dff0;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;" id="btnHistory">History</button>
-</div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('scan')">Scan</button>
+      <button class="nav-tab" onclick="showPage('history')">History</button>
+    </div>
     <div class="api-pill" onclick="openModal()">
       <div class="api-dot" id="apiDot"></div>
       <span id="apiLabel">Set API Key</span>
@@ -636,6 +636,7 @@ let currentData=null, scanHistory=JSON.parse(localStorage.getItem('deedHistory3'
 let apiKey=localStorage.getItem('deedApiKey')||'', pageImages=[], isPDF=false, sortDir='desc';
 let batchFiles=[], batchResults=[];
 let colSortKey=null, colSortDir='asc';
+let countyYearState={};
 let countyYearState={}; // tracks active year tab per county
 
 const SC_COUNTIES=['Abbeville','Aiken','Allendale','Anderson','Bamberg','Barnwell','Beaufort','Berkeley','Calhoun','Charleston','Cherokee','Chester','Chesterfield','Clarendon','Colleton','Darlington','Dillon','Dorchester','Edgefield','Fairfield','Florence','Georgetown','Greenville','Greenwood','Hampton','Horry','Jasper','Kershaw','Lancaster','Laurens','Lee','Lexington','Marion','Marlboro','McCormick','Newberry','Oconee','Orangeburg','Pickens','Richland','Saluda','Spartanburg','Sumter','Union','Williamsburg','York'];
@@ -673,17 +674,10 @@ function showPage(p){
   if(p==='history')renderHistoryPage();
 }
 function showPage2(p){
-  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active');});
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
   document.getElementById(p+'Page').classList.add('active');
-  var bs=document.getElementById('btnScan');
-  var bh=document.getElementById('btnHistory');
-  if(p==='scan'){
-    if(bs){bs.style.background='#fff';bs.style.color='#1a3a5c';}
-    if(bh){bh.style.background='rgba(255,255,255,0.15)';bh.style.color='#c8dff0';}
-  } else {
-    if(bh){bh.style.background='#fff';bh.style.color='#1a3a5c';}
-    if(bs){bs.style.background='rgba(255,255,255,0.15)';bs.style.color='#c8dff0';}
-  }
+  document.querySelector(`.nav-tab[onclick="showPage('${p}')"]`).classList.add('active');
 }
 
 function openModal(){document.getElementById('modalKeyInput').value=apiKey;document.getElementById('modalOverlay').classList.add('open');}
@@ -822,7 +816,7 @@ function setStatus(msg,loading){document.getElementById('statusMsg').textContent
 async function callAPI(asPDF){
   const pdfExtra=asPDF?'\n- This is a full PDF — extract County from the document header on the first page':'\n- This is a screenshot — County may not be visible, return "—" if not found';
   const prompt=`You are a real estate deed parser. Return ONLY raw JSON, no markdown, no explanation.
-RULES: Only extract what is visible. Use "—" for missing fields. Recorded Date: look for the clerk's official recording stamp in the top corner of the first page showing when it was filed at the county office — this is NOT the auction date and NOT today's date, return '—' if no stamp visible. Map # may be Tax Map Number/Parcel ID/TMS.${pdfExtra}
+RULES: Only extract what is visible. Use "—" for missing fields. Recorded Date is in the filing stamp upper corner. Map # may be Tax Map Number/Parcel ID/TMS.${pdfExtra}
 Taxes Owed: look for delinquent tax amounts or tax liability near prior owner info.
 Return ONLY: {"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","Seller":"","Sale Price":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Taxes Owed":"","Property Address":"","County":"","Map #":"","Legal Description":""}`;
   const content=pageImages.map(b64=>({type:'image',source:{type:'base64',media_type:'image/png',data:b64}}));
@@ -1605,69 +1599,3 @@ document.addEventListener('click', e => {
 });
 
 
-
-</script>
-
-<!-- USAGE METER POPUP -->
-<div id="usagePopup" style="display:none;position:fixed;top:64px;right:16px;background:#fff;border:1px solid #c8d8e8;border-radius:12px;padding:16px;width:280px;z-index:500;">
-  <div style="font-size:12px;font-weight:600;color:#1a3a5c;margin-bottom:12px;display:flex;justify-content:space-between;">
-    <span>API Usage Tracker</span>
-    <button onclick="document.getElementById('usagePopup').style.display='none'" style="background:none;border:none;cursor:pointer;color:#4a6880;">✕</button>
-  </div>
-  <div style="font-size:12px;padding:4px 0;border-bottom:1px solid #c8d8e8;display:flex;justify-content:space-between;"><span style="color:#4a6880;">Scans this session</span><span style="font-weight:600;color:#1a3a5c;" id="umpSessionScans">0</span></div>
-  <div style="font-size:12px;padding:4px 0;border-bottom:1px solid #c8d8e8;display:flex;justify-content:space-between;"><span style="color:#4a6880;">Total scans</span><span style="font-weight:600;color:#1a3a5c;" id="umpTotalScans">0</span></div>
-  <div style="font-size:12px;padding:4px 0;border-bottom:1px solid #c8d8e8;display:flex;justify-content:space-between;"><span style="color:#4a6880;">Session cost</span><span style="font-weight:600;color:#1a3a5c;" id="umpSessionCost">$0.00</span></div>
-  <div style="font-size:12px;padding:4px 0;border-bottom:1px solid #c8d8e8;display:flex;justify-content:space-between;"><span style="color:#4a6880;">Total cost</span><span style="font-weight:600;color:#1a3a5c;" id="umpTotalCost">$0.00</span></div>
-  <div style="font-size:12px;padding:4px 0;display:flex;justify-content:space-between;"><span style="color:#4a6880;">Avg per scan</span><span style="font-weight:600;color:#1a3a5c;" id="umpAvgCost">$0.02</span></div>
-  <div style="width:100%;height:8px;background:#e0ebf5;border-radius:4px;overflow:hidden;margin:8px 0;"><div id="umpBarFill" style="height:100%;border-radius:4px;background:#2e7d52;width:0%;"></div></div>
-</div>
-
-<!-- EXPORT POPUP -->
-<div id="exportPopupOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:200;">
-  <div style="background:#fff;border-radius:14px;padding:28px 24px;width:300px;text-align:center;">
-    <div style="font-size:36px;margin-bottom:10px;">💾</div>
-    <h3 style="color:#1a3a5c;margin-bottom:8px;">Time to Back Up!</h3>
-    <p style="font-size:12px;color:#4a6880;margin-bottom:18px;">You have <strong id="exportPopupCount">20</strong> unexported scans.</p>
-    <div style="display:flex;gap:8px;">
-      <button onclick="document.getElementById('exportPopupOverlay').style.display='none';sessionStorage.setItem('tds_popupDismissed','1');" style="flex:1;padding:9px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid #c8d8e8;background:#f0f4f8;">Remind Later</button>
-      <button onclick="document.getElementById('exportPopupOverlay').style.display='none';exportCSV();" style="flex:1;padding:9px;border-radius:8px;font-size:12px;cursor:pointer;background:#1a3a5c;color:#fff;border:none;font-weight:600;">Export Now</button>
-    </div>
-  </div>
-</div>
-
-<!-- CLEAR ALL POPUP -->
-<div id="clearAllPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:200;">
-  <div style="background:#fff;border-radius:14px;padding:28px 24px;width:300px;text-align:center;">
-    <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
-    <h3 style="color:#1a3a5c;margin-bottom:8px;">Clear All History?</h3>
-    <p style="font-size:12px;color:#4a6880;margin-bottom:18px;">This will permanently delete all records. Export first!</p>
-    <div style="display:flex;gap:8px;">
-      <button onclick="document.getElementById('clearAllPopup').style.display='none';" style="flex:1;padding:9px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid #c8d8e8;background:#f0f4f8;">Cancel</button>
-      <button onclick="document.getElementById('clearAllPopup').style.display='none';clearHistory();" style="flex:1;padding:9px;border-radius:8px;font-size:12px;cursor:pointer;background:#c0392b;color:#fff;border:none;font-weight:600;">Yes, Delete All</button>
-    </div>
-  </div>
-</div>
-
-
-<script>
-(function(){
-  var sp = document.getElementById('scanPage');
-  var hp = document.getElementById('historyPage');
-  var bs = document.getElementById('btnScan');
-  var bh = document.getElementById('btnHistory');
-  if(!sp||!hp||!bs||!bh){ return; }
-  bs.onclick = function(){
-    sp.style.display='flex'; hp.style.display='none';
-    bs.style.background='#fff'; bs.style.color='#1a3a5c';
-    bh.style.background='rgba(255,255,255,0.15)'; bh.style.color='#c8dff0';
-  };
-  bh.onclick = function(){
-    hp.style.display='flex'; sp.style.display='none';
-    bh.style.background='#fff'; bh.style.color='#1a3a5c';
-    bs.style.background='rgba(255,255,255,0.15)'; bs.style.color='#c8dff0';
-    if(typeof renderHistoryPage==='function') renderHistoryPage();
-  };
-})();
-</script>
-</body>
-</html>
