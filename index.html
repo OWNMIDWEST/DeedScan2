@@ -1251,7 +1251,7 @@ function renderHistoryPage(){
     });
   }
 
-  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" title="Click View to open record" style="cursor:pointer;">
+  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" title="Double-click to open" style="cursor:pointer;" ondblclick="if(!event.target.closest('button')&&!event.target.closest('select')){loadEntry(${h.id});}">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
@@ -1325,12 +1325,8 @@ function renderHistoryPage(){
   });
 
   body.innerHTML=html;
-  body.addEventListener('dblclick', function(e){
-    if(e.target.closest('button')||e.target.closest('select')) return;
-    var tr=e.target.closest('tr[data-id]');
-    if(!tr) return;
-    loadEntry(parseInt(tr.getAttribute('data-id')));
-  });
+
+
 
 
 
