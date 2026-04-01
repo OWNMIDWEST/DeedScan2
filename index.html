@@ -665,20 +665,26 @@ window.onload=()=>{
   document.addEventListener('paste',e=>{const items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(let i=0;i<items.length;i++){if(items[i].type.startsWith('image/')){const f=items[i].getAsFile();if(f){handleFiles([f]);break;}}}});
 };
 
-function showPage(p){
-  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
-  document.getElementById(p+'Page').classList.add('active');
-  event.currentTarget.classList.add('active');
-  if(p==='history')renderHistoryPage();
+function showPage(p,t){
+  document.querySelectorAll('.page').forEach(function(el){
+    el.classList.remove('active');
+    el.style.display='';
+  });
+  var target=document.getElementById(p+'Page');
+  if(target){ target.classList.add('active'); }
+  if(t){
+    document.querySelectorAll('.nav-tab').forEach(function(el){el.classList.remove('active');});
+    t.classList.add('active');
+  }
+  if(p==='history' && typeof renderHistoryPage==='function') renderHistoryPage();
 }
 function showPage2(p){
   document.querySelectorAll('.page').forEach(function(el){
     el.classList.remove('active');
-    el.style.display='none';
+    el.style.display='';
   });
   var target=document.getElementById(p+'Page');
-  if(target){target.classList.add('active');target.style.display='flex';}
+  if(target){ target.classList.add('active'); }
   var bs=document.getElementById('btnScan');
   var bh=document.getElementById('btnHistory');
   if(p==='scan'){
@@ -1245,7 +1251,7 @@ function renderHistoryPage(){
     });
   }
 
-  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" title="Double-click to open record" style="cursor:pointer;">
+  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" title="Click View to open record" style="cursor:pointer;">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
@@ -1258,7 +1264,7 @@ function renderHistoryPage(){
     <td class="td-price" style="color:var(--danger)">${h.data['Taxes Owed']!=='—'?h.data['Taxes Owed']:'—'}</td>
     <td class="td-date">${h.data['Tax Sale Auction Date']!=='—'?h.data['Tax Sale Auction Date']:'—'}</td>
     <td class="td-date">${h.data['Recorded Date']!=='—'?h.data['Recorded Date']:''}</td>
-    <td style="white-space:nowrap"><button onclick="event.stopPropagation();loadEntry(${h.id})" style="background:#1a3a5c;color:#fff;border:none;border-radius:4px;padding:3px 10px;font-size:10px;font-weight:600;cursor:pointer;margin-right:4px;font-family:inherit;">View</button><button class="hist-del" onclick="event.stopPropagation();deleteEntry(${h.id})" title="Delete">✕</button></td>
+    <td style="white-space:nowrap"><button onclick="event.stopPropagation();loadEntry(${h.id})" style="background:#1a3a5c;color:#fff;border:none;border-radius:4px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;font-family:inherit;">View ↗</button><button class="hist-del" onclick="event.stopPropagation();deleteEntry(${h.id})" title="Delete">✕</button></td>
   </tr>`).join('');
 
   // County subtotals helper
@@ -1320,11 +1326,12 @@ function renderHistoryPage(){
 
   body.innerHTML=html;
   body.addEventListener('dblclick', function(e){
-    if(e.target.closest('button')||e.target.closest('select')||e.target.closest('a')) return;
+    if(e.target.closest('button')||e.target.closest('select')) return;
     var tr=e.target.closest('tr[data-id]');
     if(!tr) return;
     loadEntry(parseInt(tr.getAttribute('data-id')));
   });
+
 
 
 }
@@ -1663,21 +1670,15 @@ document.addEventListener('click', e => {
 
 <script>
 window.addEventListener('load', function(){
-  var sp = document.getElementById('scanPage');
-  var hp = document.getElementById('historyPage');
-  var bs = document.getElementById('btnScan');
-  var bh = document.getElementById('btnHistory');
+  var bs=document.getElementById('btnScan');
+  var bh=document.getElementById('btnHistory');
 
   if(bs) bs.addEventListener('click', function(){
-    sp.style.display='flex'; hp.style.display='none';
-    bs.style.background='#fff'; bs.style.color='#1a3a5c';
-    bh.style.background='rgba(255,255,255,0.15)'; bh.style.color='#c8dff0';
+    showPage2('scan');
   });
 
   if(bh) bh.addEventListener('click', function(){
-    hp.style.display='flex'; sp.style.display='none';
-    bh.style.background='#fff'; bh.style.color='#1a3a5c';
-    bs.style.background='rgba(255,255,255,0.15)'; bs.style.color='#c8dff0';
+    showPage2('history');
     if(typeof renderHistoryPage==='function') renderHistoryPage();
   });
 });
