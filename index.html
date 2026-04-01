@@ -1241,7 +1241,7 @@ function renderHistoryPage(){
     });
   }
 
-  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" ondblclick="loadEntry(${h.id})" title="Double-click to open record" style="cursor:pointer;">
+  const trows=list=>sortedList(list).map(h=>`<tr data-id="${h.id}" title="Double-click to open record" style="cursor:pointer;">
     <td class="td-grantee">${h.data['Grantee']!=='—'?h.data['Grantee']:'<span style="color:#ccc">—</span>'}${h.meta.isDup?'<span class="dup-badge">dup</span>':''}</td>
     <td class="td-addr">${h.data['Property Address']!=='—'?h.data['Property Address']:'<span style="color:#ccc">—</span>'}</td>
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
@@ -1253,7 +1253,7 @@ function renderHistoryPage(){
     <td class="td-price">${h.data['Sale Price']!=='—'?h.data['Sale Price']:'—'}</td>
     <td class="td-price" style="color:var(--danger)">${h.data['Taxes Owed']!=='—'?h.data['Taxes Owed']:'—'}</td>
     <td class="td-date">${h.data['Tax Sale Auction Date']!=='—'?h.data['Tax Sale Auction Date']:'—'}</td>
-    <td class="td-date">${h.meta.date.split(',')[0]}</td>
+    <td class="td-date">${h.data['Recorded Date']!=='—'?h.data['Recorded Date']:''}</td>
     <td><button class="hist-del" onclick="event.stopPropagation();deleteEntry(${h.id})" title="Delete">✕</button></td>
   </tr>`).join('');
 
@@ -1315,13 +1315,14 @@ function renderHistoryPage(){
   });
 
   body.innerHTML=html;
-  // Attach double-click to all table rows
-  body.querySelectorAll('tr[data-id]').forEach(function(tr){
-    tr.addEventListener('dblclick', function(e){
-      if(e.target.closest('button')||e.target.closest('select')) return;
-      loadEntry(parseInt(tr.getAttribute('data-id')));
-    });
+  body.addEventListener('dblclick', function(e){
+    if(e.target.closest('button')||e.target.closest('select')||e.target.closest('a')) return;
+    var tr = e.target.closest('tr[data-id]');
+    if(!tr) return;
+    var id = parseInt(tr.getAttribute('data-id'));
+    loadEntry(id);
   });
+
 }
 
 // ── BACKUP & RESTORE ──
