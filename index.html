@@ -677,14 +677,17 @@ function showPage2(p){
   var hp=document.getElementById('historyPage');
   var bs=document.getElementById('btnScan');
   var bh=document.getElementById('btnHistory');
+  // Force display with both inline style and setTimeout to ensure it sticks
   if(p==='scan'){
+    if(hp){hp.style.display='none'; hp.style.removeProperty && hp.style.removeProperty('display'); hp.style.display='none';}
     if(sp){sp.style.display='flex';}
-    if(hp){hp.style.display='none';}
+    setTimeout(function(){ if(sp) sp.style.display='flex'; if(hp) hp.style.display='none'; }, 0);
     if(bs){bs.style.background='#fff';bs.style.color='#1a3a5c';}
     if(bh){bh.style.background='rgba(255,255,255,0.15)';bh.style.color='#c8dff0';}
   } else {
-    if(hp){hp.style.display='flex';}
     if(sp){sp.style.display='none';}
+    if(hp){hp.style.display='flex';}
+    setTimeout(function(){ if(hp) hp.style.display='flex'; if(sp) sp.style.display='none'; }, 0);
     if(bh){bh.style.background='#fff';bh.style.color='#1a3a5c';}
     if(bs){bs.style.background='rgba(255,255,255,0.15)';bs.style.color='#c8dff0';}
   }
@@ -1110,7 +1113,7 @@ function loadEntry(id){
   // Restore notes
   const notesArea=document.getElementById('recordNotesArea');
   if(notesArea)notesArea.value=entry.meta.recordNotes||'';
-  showPage2('scan');
+  setTimeout(function(){ showPage2('scan'); }, 10);
 }
 
 function deleteEntry(id){
