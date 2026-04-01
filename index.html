@@ -236,7 +236,7 @@
   @media print {
     header,.left-panel,.action-bar,.nav-tabs,.api-pill,.edit-btn,.copy-btn,.result-section-title .gis-btn{display:none!important;}
     body{overflow:auto;background:#fff;}
-    .page{display:flex!important;}
+    
     main{grid-template-columns:1fr;}
     .right-panel{overflow:visible;}
     .results-area{padding:0;}
@@ -673,21 +673,18 @@ function showPage(p){
   if(p==='history')renderHistoryPage();
 }
 function showPage2(p){
-  var sp=document.getElementById('scanPage');
-  var hp=document.getElementById('historyPage');
+  document.querySelectorAll('.page').forEach(function(el){
+    el.classList.remove('active');
+    el.style.display='none';
+  });
+  var target=document.getElementById(p+'Page');
+  if(target){target.classList.add('active');target.style.display='flex';}
   var bs=document.getElementById('btnScan');
   var bh=document.getElementById('btnHistory');
-  // Force display with both inline style and setTimeout to ensure it sticks
   if(p==='scan'){
-    if(hp){hp.style.display='none'; hp.style.removeProperty && hp.style.removeProperty('display'); hp.style.display='none';}
-    if(sp){sp.style.display='flex';}
-    setTimeout(function(){ if(sp) sp.style.display='flex'; if(hp) hp.style.display='none'; }, 0);
     if(bs){bs.style.background='#fff';bs.style.color='#1a3a5c';}
     if(bh){bh.style.background='rgba(255,255,255,0.15)';bh.style.color='#c8dff0';}
   } else {
-    if(sp){sp.style.display='none';}
-    if(hp){hp.style.display='flex';}
-    setTimeout(function(){ if(hp) hp.style.display='flex'; if(sp) sp.style.display='none'; }, 0);
     if(bh){bh.style.background='#fff';bh.style.color='#1a3a5c';}
     if(bs){bs.style.background='rgba(255,255,255,0.15)';bs.style.color='#c8dff0';}
   }
@@ -1113,7 +1110,7 @@ function loadEntry(id){
   // Restore notes
   const notesArea=document.getElementById('recordNotesArea');
   if(notesArea)notesArea.value=entry.meta.recordNotes||'';
-  setTimeout(function(){ showPage2('scan'); }, 10);
+  showPage2('scan');
 }
 
 function deleteEntry(id){
