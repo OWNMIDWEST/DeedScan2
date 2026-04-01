@@ -1035,7 +1035,7 @@ function updateStatusBadgeDisplay(val){
 }
 
 function updateStatusFromHistory(id, val){
-  const entry=scanHistory.find(h=>h.id===id);
+  const entry=scanHistory.find(h=>h.id==id||String(h.id)===String(id));
   if(!entry)return;
   entry.meta.status=val;
   localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
@@ -1096,7 +1096,7 @@ function saveToHistory(data,meta,id){
 }
 
 function loadEntry(id){
-  const entry=scanHistory.find(h=>h.id===id);if(!entry)return;
+  const entry=scanHistory.find(h=>h.id==id||String(h.id)===String(id));if(!entry)return;
   currentData=entry.data;renderResults(entry.data,entry.meta);
   updateGISLink(entry.meta.county,entry.data['Map #']);
   // Restore status
@@ -1657,24 +1657,25 @@ document.addEventListener('click', e => {
 
 
 <script>
-(function(){
+window.addEventListener('load', function(){
   var sp = document.getElementById('scanPage');
   var hp = document.getElementById('historyPage');
   var bs = document.getElementById('btnScan');
   var bh = document.getElementById('btnHistory');
-  if(!sp||!hp||!bs||!bh){ return; }
-  bs.onclick = function(){
+
+  if(bs) bs.addEventListener('click', function(){
     sp.style.display='flex'; hp.style.display='none';
     bs.style.background='#fff'; bs.style.color='#1a3a5c';
     bh.style.background='rgba(255,255,255,0.15)'; bh.style.color='#c8dff0';
-  };
-  bh.onclick = function(){
+  });
+
+  if(bh) bh.addEventListener('click', function(){
     hp.style.display='flex'; sp.style.display='none';
     bh.style.background='#fff'; bh.style.color='#1a3a5c';
     bs.style.background='rgba(255,255,255,0.15)'; bs.style.color='#c8dff0';
     if(typeof renderHistoryPage==='function') renderHistoryPage();
-  };
-})();
+  });
+});
 </script>
 </body>
 </html>
