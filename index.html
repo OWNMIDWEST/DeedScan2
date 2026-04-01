@@ -564,6 +564,7 @@
 <div class="page" id="historyPage">
   <div class="hist-toolbar">
     <span class="hist-toolbar-title">Scan History</span>
+    <button onclick="var r=JSON.parse(localStorage.getItem('deedHistory3')||'[]');var c=r.filter(h=>h.meta&&h.meta.county==='Charleston');alert('Charleston records: '+c.length+'\n'+c.slice(0,5).map(h=>'RD: '+(h.data&&h.data['Recorded Date']||'none')).join('\n'));" style="background:#c0392b;color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:10px;cursor:pointer;font-family:inherit;">Debug Charleston</button>
     <input class="hist-filter hist-search" type="text" id="histSearch" placeholder="Search grantee, address, map#..." oninput="renderHistoryPage()">
     <select class="hist-filter" id="histStatusFilter" onchange="renderHistoryPage()">
       <option value="">All Statuses</option>
@@ -1309,7 +1310,7 @@ function renderHistoryPage(){
     const cid='cs-'+county.replace(/ /g,'-');
     const years=[...new Set(group.map(h=>getRecordedYear(h)))].sort((a,b)=>b-a);
     const activeYear = countyYearState[county] !== undefined ? countyYearState[county] : years[0];
-    const yearTabsHtml = years.length > 1
+    const yearTabsHtml = years.length >= 1
       ? `<div class="year-tabs">${years.map(y=>`<button class="year-tab${y===activeYear?' active':''}" onclick="event.stopPropagation();setCountyYear('${county}',${y})">${y}</button>`).join('')}</div>`
       : `<span style="font-size:10px;color:rgba(255,255,255,0.6);margin-left:6px">${years[0]||''}</span>`;
     const fg = group.filter(h => getRecordedYear(h) === activeYear);
