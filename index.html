@@ -1199,9 +1199,12 @@ function updateGISLink(county,mapNum){
 function getRecordedYear(h){
   var rd = h.data && h.data['Recorded Date'];
   if(!rd || rd==='—') return new Date(h.id).getFullYear();
-  // Try to parse year from various date formats
-  var m = String(rd).match(/(20\d\d)/);
-  return m ? parseInt(m[1]) : new Date(h.id).getFullYear();
+  var s = String(rd);
+  var m = s.match(/(20[0-9][0-9])/);
+  if(m) return parseInt(m[1]);
+  var d = new Date(s);
+  if(!isNaN(d)) return d.getFullYear();
+  return new Date(h.id).getFullYear();
 }
 
 function renderHistoryPage(){
