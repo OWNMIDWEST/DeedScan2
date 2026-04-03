@@ -256,6 +256,7 @@
   .status-noaction{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1;}
   .status-qt{background:#ede9fe;color:#5b21b6;border:1px solid #a78bfa;}
   .status-select{background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 7px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text);cursor:pointer;transition:border-color 0.15s;}
+  #recordStatus option{background:#1a3a5c;color:#fff;}
   .status-select:focus{outline:none;border-color:#1a3a5c;}
 
   /* RECORD NOTES */
@@ -540,7 +541,7 @@
         <div class="rtb-meta" id="rtbMeta"></div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
           <span style="font-size:10px;color:#8ab4d4;user-select:none">Status:</span>
-          <select class="status-select" id="recordStatus" onchange="updateRecordStatus(this.value)" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.3);">
+          <select class="status-select" id="recordStatus" onchange="updateRecordStatus(this.value)" style="background:#1a3a5c;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 8px;">
             <option value="No Action Yet">No Action Yet</option>
             <option value="Available">Available</option>
             <option value="Assigned">Assigned</option>
