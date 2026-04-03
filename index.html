@@ -1355,7 +1355,7 @@ function renderHistoryPage(){
     <td>${h.data['Map #']!=='—'?h.data['Map #']:'—'}</td>
     <td ondblclick="event.stopPropagation()" style="padding:4px 8px;">
       <select class="status-inline-select" onchange="updateStatusFromHistory(${h.id},this.value)" style="color:inherit;">
-        ${['No Action Yet','Available','Assigned','Retained','Sold'].map(s=>`<option value="${s}" ${(h.meta.status||'No Action Yet')===s?'selected':''}>${s}</option>`).join('')}
+        ${['No Action Yet','Available','Assigned','Retained','QT in Progress','Sold'].map(s=>`<option value="${s}" ${(h.meta.status||'No Action Yet')===s?'selected':''}>${s}</option>`).join('')}
       </select>
     </td>
     <td class="td-price">${h.data['Sale Price']!=='—'?h.data['Sale Price']:'—'}</td>
