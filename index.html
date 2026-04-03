@@ -886,17 +886,47 @@ function normalizeFields(parsed){
   req.forEach(f=>{if(!parsed[f]||parsed[f]==='null'||parsed[f]===null)parsed[f]='—';});
 }
 
+function normalizeMap(m){
+  return String(m||'').replace(/[^0-9a-zA-Z]/g,'').toUpperCase();
+}
+function normalizeAddr(a){
+  return String(a||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+}
+function normalizeGrantee(g){
+  return String(g||'').toLowerCase().replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
+}
 function checkDuplicate(parsed){
-  const mapNum=parsed['Map #']!=='—'?parsed['Map #']:'';
-  const addr=parsed['Property Address']!=='—'?parsed['Property Address']:'';
-  if(!mapNum&&!addr)return null;
+  const mapNum = parsed['Map #']!=='—' ? parsed['Map #'] : '';
+  const addr   = parsed['Property Address']!=='—' ? parsed['Property Address'] : '';
+  const grantee= parsed['Grantee']!=='—' ? parsed['Grantee'] : '';
+  const recDate= parsed['Recorded Date']!=='—' ? parsed['Recorded Date'] : '';
+
+  if(!mapNum && !addr) return null;
+
+  const nMap     = normalizeMap(mapNum);
+  const nAddr    = normalizeAddr(addr);
+  const nGrantee = normalizeGrantee(grantee);
+
   return scanHistory.find(h=>{
-    const hMap=h.data['Map #']!=='—'?h.data['Map #']:'';
-    const hAddr=h.data['Property Address']!=='—'?h.data['Property Address']:'';
-    if(mapNum&&hMap&&mapNum.replace(/[-. ]/g,'')===hMap.replace(/[-. ]/g,''))return true;
-    if(addr&&hAddr&&addr.toLowerCase().trim()===hAddr.toLowerCase().trim())return true;
+    const hMap     = normalizeMap(h.data['Map #']);
+    const hAddr    = normalizeAddr(h.data['Property Address']);
+    const hGrantee = normalizeGrantee(h.data['Grantee']);
+    const hDate    = h.data['Recorded Date']!=='—' ? h.data['Recorded Date'] : '';
+
+    // Step 1: Map # match (strip ALL non-alphanumeric)
+    if(nMap && hMap && nMap === hMap) {
+      // Step 2: Confirm with at least one more field
+      if(nGrantee && hGrantee && nGrantee === hGrantee) return true;
+      if(nAddr && hAddr && nAddr === hAddr) return true;
+      // Map # alone is strong enough if long enough (8+ chars)
+      if(nMap.length >= 8) return true;
+    }
+
+    // Address + Grantee match (no Map #)
+    if(nAddr && hAddr && nAddr === hAddr && nGrantee && hGrantee && nGrantee === hGrantee) return true;
+
     return false;
-  })||null;
+  }) || null;
 }
 
 async function extractData(){
