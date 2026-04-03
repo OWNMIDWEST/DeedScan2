@@ -76,6 +76,7 @@
   .bq-status.pending{background:#c8d8e8;}
   .bq-status.processing{background:#f59e0b;animation:pulse 1s infinite;}
   .bq-status.done{background:var(--success);}
+  .bq-status.failed{background:var(--danger);}
   .bq-status.dup{background:var(--warn);}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
   .bq-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
@@ -789,8 +790,8 @@ function renderBatchQueue(){
   document.getElementById('bqList').innerHTML=batchResults.map((r,i)=>`
     <div class="bq-item">
       <div class="bq-status ${r.status}"></div>
-      <div class="bq-name">${r.name}</div>
-      <div class="bq-tag">${r.status==='done'?'✓':r.status==='dup'?'dup':r.status==='processing'?'...':''}</div>
+      <div class="bq-name" title="${r.error||r.name}">${r.name}</div>
+      <div class="bq-tag">${r.status==='done'?'✓':r.status==='dup'?'dup':r.status==='processing'?'...':r.status==='failed'?'✗':''}</div>
     </div>`).join('');
   document.getElementById('bqProgress').textContent=batchResults.filter(r=>r.status==='done'||r.status==='dup').length+'/'+batchResults.length;
 }
@@ -799,12 +800,26 @@ async function extractBatch(){
   if(!apiKey){openModal();return;}
   const btn=document.getElementById('batchExtractBtn');
   btn.disabled=true;btn.textContent='Extracting...';
+  let successCount=0;
+  let failCount=0;
+  const failedFiles=[];
+
   for(let i=0;i<batchFiles.length;i++){
-    batchResults[i].status='processing';renderBatchQueue();
+    batchResults[i].status='processing';
+    batchResults[i].error='';
+    renderBatchQueue();
+    setStatus('Processing file '+(i+1)+' of '+batchFiles.length+'...',true);
+
     try{
       await loadSingleFile(batchFiles[i]);
       const parsed=await callAPI(isPDF);
-      if(!parsed){batchResults[i].status='done';continue;}
+      if(!parsed){
+        batchResults[i].status='failed';
+        batchResults[i].error='No data extracted';
+        failedFiles.push(batchFiles[i].name);
+        failCount++;
+        continue;
+      }
       const county=document.getElementById('scanCounty').value;
       if(isPDF&&parsed['County']&&parsed['County']!=='—'){
         const m=SC_COUNTIES.find(c=>c.toLowerCase()===parsed['County'].replace(/county/i,'').replace(/,?\s*sc/i,'').trim().toLowerCase());
@@ -818,14 +833,36 @@ async function extractBatch(){
       const meta={title:autoTitle,county:parsed['County']!=='—'?parsed['County']:'',notes:'',date:new Date().toLocaleString(),isDup:!!dup};
       saveToHistory(parsed,meta);
       batchResults[i].status=dup?'dup':'done';
-    }catch(e){batchResults[i].status='done';}
+      successCount++;
+    }catch(e){
+      batchResults[i].status='failed';
+      batchResults[i].error=e.message||'Error';
+      failedFiles.push(batchFiles[i].name);
+      failCount++;
+      console.error('Batch error on file '+i+':',e);
+    }
     renderBatchQueue();
-  }
-  btn.disabled=false;btn.textContent='Extract All Documents';
-  setStatus('Batch complete — '+batchResults.filter(r=>r.status==='done'||r.status==='dup').length+' processed.',false);
-  updateLeftPanel();
-}
 
+    // Delay between files to avoid API rate limiting
+    if(i < batchFiles.length-1){
+      await new Promise(resolve=>setTimeout(resolve, 1500));
+    }
+  }
+
+  btn.disabled=false;btn.textContent='Extract All Documents';
+  setStatus('',false);
+  updateLeftPanel();
+  checkExportReminder();
+
+  // Show summary
+  let summary = 'Batch complete!\n\n';
+  summary += '✓ Processed: '+successCount+' files\n';
+  if(failCount>0){
+    summary += '✗ Failed: '+failCount+' files\n\nFailed files:\n'+failedFiles.join('\n');
+    summary += '\n\nPlease re-upload the failed files.';
+  }
+  alert(summary);
+}
 // ── SINGLE EXTRACT ──
 function setStatus(msg,loading){document.getElementById('statusMsg').textContent=msg;document.getElementById('loadingBar').classList.toggle('active',!!loading);}
 
@@ -1102,7 +1139,24 @@ function searchByMap(){
 function saveToHistory(data,meta,id){
   const entryId=id||Date.now();
   scanHistory.unshift({id:entryId,meta,data});
-  localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+  try {
+    localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+  } catch(e) {
+    // localStorage full - trim legal descriptions to save space
+    const trimmed = scanHistory.map(h => {
+      const d = Object.assign({}, h.data);
+      if(d['Legal Description'] && d['Legal Description'].length > 200) {
+        d['Legal Description'] = d['Legal Description'].substring(0, 200) + '...';
+      }
+      return Object.assign({}, h, {data: d});
+    });
+    try {
+      localStorage.setItem('deedHistory3', JSON.stringify(trimmed));
+      scanHistory = trimmed;
+    } catch(e2) {
+      console.error('localStorage full even after trimming:', e2);
+    }
+  }
 }
 
 function loadEntry(id){
