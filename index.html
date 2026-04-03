@@ -808,7 +808,7 @@ async function extractBatch(){
     batchResults[i].status='processing';
     batchResults[i].error='';
     renderBatchQueue();
-    setStatus('Processing file '+(i+1)+' of '+batchFiles.length+'...',true);
+    setStatus('Processing file '+(i+1)+' of '+batchFiles.length+' — pausing 7s between files to avoid rate limits...',true);
 
     try{
       await loadSingleFile(batchFiles[i]);
@@ -845,7 +845,7 @@ async function extractBatch(){
 
     // Delay between files to avoid API rate limiting
     if(i < batchFiles.length-1){
-      await new Promise(resolve=>setTimeout(resolve, 1500));
+      await new Promise(resolve=>setTimeout(resolve, 7000)); // 7s delay to stay under 30k token/min rate limit
     }
   }
 
@@ -1329,7 +1329,7 @@ function renderHistoryPage(){
     <td class="td-price" style="color:var(--danger)">${h.data['Taxes Owed']!=='—'?h.data['Taxes Owed']:'—'}</td>
     <td class="td-date">${h.data['Tax Sale Auction Date']!=='—'?h.data['Tax Sale Auction Date']:'—'}</td>
     <td class="td-date">${h.data['Recorded Date']!=='—'?h.data['Recorded Date']:''}</td>
-    <td style="white-space:nowrap"><button onclick="event.stopPropagation();loadEntry(${h.id})" style="background:#1a3a5c;color:#fff;border:none;border-radius:4px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;margin-right:4px;font-family:inherit;">View ↗</button><button class="hist-del" onclick="event.stopPropagation();deleteEntry(${h.id})" title="Delete">✕</button></td>
+    <td style="white-space:nowrap"><button onclick="event.stopPropagation();loadEntry(${h.id})" style="background:#1a3a5c;color:#fff;border:none;border-radius:4px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">View ↗</button><span style="display:inline-block;width:24px;"></span><button class="hist-del" onclick="event.stopPropagation();deleteEntry(${h.id})" title="Delete">✕</button></td>
   </tr>`).join('');
 
   // County subtotals helper
