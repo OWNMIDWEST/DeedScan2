@@ -597,9 +597,10 @@
     <button class="clear-all-btn" style="margin-left:auto" onclick="confirmClearAll()">Clear All</button>
   </div>
   <div class="backup-bar">
-    <span class="backup-bar-label">💾 Data saved in this browser only — back up regularly to avoid losing records</span>
+    <span class="backup-bar-label">☁️ Supabase connected — data syncs automatically</span>
     <span class="backup-last" id="lastBackupLabel"></span>
     <button class="backup-btn" onclick="backupData()">Download Backup</button>
+    <button class="backup-btn" onclick="syncAllToSupabase()" style="background:#2e7d52;">Sync All to Supabase</button>
     <label class="backup-btn restore" style="cursor:pointer;display:inline-flex;align-items:center;">
       Restore Backup
       <input type="file" id="restoreFileInput" accept=".json" style="display:none;">
@@ -638,6 +639,129 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let currentData=null, scanHistory=JSON.parse(localStorage.getItem('deedHistory3')||'[]');
+
+// ── SUPABASE CONFIG ──
+const SUPABASE_URL = 'https://enewuhlpvbxyxbalfqxs.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuZXd1aGxwdmJ4eXhiYWxmcXhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODk1MjgsImV4cCI6MjA5MzM2NTUyOH0.8Jd60WAZSOi5xQmggTqnbv6ClTQSemGzH2mh-7Fxzk0';
+
+async function sbFetch(path, method, body){
+  const res = await fetch(SUPABASE_URL+'/rest/v1/'+path, {
+    method: method||'GET',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer '+SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method==='POST'?'return=minimal':'',
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error('Supabase error: '+err);
+  }
+  if(method==='GET') return res.json();
+  return true;
+}
+
+async function saveToSupabase(data, meta, id){
+  try{
+    await sbFetch('scans', 'POST', {
+      id: id,
+      title: meta.title||'',
+      county: meta.county||'',
+      status: meta.status||'No Action Yet',
+      notes: meta.notes||'',
+      record_notes: meta.recordNotes||'',
+      scan_date: meta.date||'',
+      is_dup: meta.isDup||false,
+      document_type: data['Document Type']!=='—'?data['Document Type']:null,
+      auction_date: data['Tax Sale Auction Date']!=='—'?data['Tax Sale Auction Date']:null,
+      recorded_date: data['Recorded Date']!=='—'?data['Recorded Date']:null,
+      seller: data['Seller']!=='—'?data['Seller']:null,
+      sale_price: data['Sale Price']!=='—'?data['Sale Price']:null,
+      grantee: data['Grantee']!=='—'?data['Grantee']:null,
+      grantee_address: data['Grantee Address']!=='—'?data['Grantee Address']:null,
+      prior_owners: data['Prior Owner(s)']!=='—'?data['Prior Owner(s)']:null,
+      taxes_owed: data['Taxes Owed']!=='—'?data['Taxes Owed']:null,
+      property_address: data['Property Address']!=='—'?data['Property Address']:null,
+      map_number: data['Map #']!=='—'?data['Map #']:null,
+      legal_description: data['Legal Description']!=='—'?data['Legal Description']:null,
+    });
+    console.log('Saved to Supabase:', id);
+  }catch(e){
+    console.error('Supabase save failed:', e.message);
+  }
+}
+
+async function updateStatusInSupabase(id, status){
+  try{
+    await sbFetch('scans?id=eq.'+id, 'PATCH', {status: status});
+  }catch(e){
+    console.error('Supabase status update failed:', e.message);
+  }
+}
+
+async function updateNotesInSupabase(id, notes){
+  try{
+    await sbFetch('scans?id=eq.'+id, 'PATCH', {record_notes: notes});
+  }catch(e){
+    console.error('Supabase notes update failed:', e.message);
+  }
+}
+
+async function loadFromSupabase(){
+  try{
+    setStatus('Loading records from Supabase...', true);
+    const rows = await sbFetch('scans?order=id.desc&limit=10000', 'GET');
+    if(!rows||!rows.length){ setStatus('',false); return; }
+    // Convert Supabase rows to app format
+    const loaded = rows.map(r=>{
+      const data = {};
+      data['Document Type'] = r.document_type||'—';
+      data['Tax Sale Auction Date'] = r.auction_date||'—';
+      data['Recorded Date'] = r.recorded_date||'—';
+      data['Seller'] = r.seller||'—';
+      data['Sale Price'] = r.sale_price||'—';
+      data['Grantee'] = r.grantee||'—';
+      data['Grantee Address'] = r.grantee_address||'—';
+      data['Prior Owner(s)'] = r.prior_owners||'—';
+      data['Taxes Owed'] = r.taxes_owed||'—';
+      data['Property Address'] = r.property_address||'—';
+      data['Map #'] = r.map_number||'—';
+      data['Legal Description'] = r.legal_description||'—';
+      return {
+        id: r.id,
+        meta: {
+          title: r.title||'',
+          county: r.county||'',
+          status: r.status||'No Action Yet',
+          notes: r.notes||'',
+          recordNotes: r.record_notes||'',
+          date: r.scan_date||'',
+          isDup: r.is_dup||false,
+        },
+        data
+      };
+    });
+    // Merge with localStorage - Supabase is source of truth
+    scanHistory = loaded;
+    localStorage.setItem('deedHistory3', JSON.stringify(scanHistory));
+    updateLeftPanel();
+    setStatus('✓ Loaded '+rows.length+' records from Supabase', false);
+    setTimeout(()=>setStatus('',false), 3000);
+  }catch(e){
+    console.error('Supabase load failed:', e.message);
+    setStatus('', false);
+  }
+}
+
+async function deleteFromSupabase(id){
+  try{
+    await sbFetch('scans?id=eq.'+id, 'DELETE');
+  }catch(e){
+    console.error('Supabase delete failed:', e.message);
+  }
+}
 let apiKey=localStorage.getItem('deedApiKey')||'', pageImages=[], isPDF=false, sortDir='desc';
 let batchFiles=[], batchResults=[];
 let colSortKey=null, colSortDir='asc';
@@ -663,6 +787,7 @@ const COUNTY_GIS = {
 
 window.onload=()=>{
   updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel(); initUsageMeter(); initRestoreInput();
+  loadFromSupabase();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -1130,10 +1255,14 @@ function updateStatusFromHistory(id, val){
 
 function updateRecordStatus(val){
   updateStatusBadgeDisplay(val);
-  // Save to current history entry
   if(!currentData)return;
   const entry=scanHistory.find(h=>h.data===currentData||JSON.stringify(h.data)===JSON.stringify(currentData));
-  if(entry){entry.meta.status=val;localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));renderHistoryPage();}
+  if(entry){
+    entry.meta.status=val;
+    localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+    updateStatusInSupabase(entry.id, val);
+    renderHistoryPage();
+  }
 }
 
 function saveRecordNotes(){
@@ -1143,6 +1272,7 @@ function saveRecordNotes(){
   if(entry){
     entry.meta.recordNotes=notes;
     localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+    updateNotesInSupabase(entry.id, notes);
     const msg=document.getElementById('notesSavedMsg');
     msg.textContent='✓ Saved';
     setTimeout(()=>{msg.textContent='';},2000);
@@ -1191,6 +1321,7 @@ function saveToHistory(data,meta,id){
       console.error('localStorage full even after trimming:', e2);
     }
   }
+  saveToSupabase(data,meta,entryId);
 }
 
 function loadEntry(id){
@@ -1210,6 +1341,7 @@ function loadEntry(id){
 function deleteEntry(id){
   scanHistory=scanHistory.filter(h=>h.id!==id);
   localStorage.setItem('deedHistory3',JSON.stringify(scanHistory));
+  deleteFromSupabase(id);
   renderHistoryPage();updateLeftPanel();
 }
 
@@ -1432,6 +1564,22 @@ function renderHistoryPage(){
 }
 
 // ── BACKUP & RESTORE ──
+async function syncAllToSupabase(){
+  if(!scanHistory.length){alert('No records to sync.');return;}
+  if(!confirm('Sync all '+scanHistory.length+' records to Supabase?\nThis may take a minute.'))return;
+  let success=0, failed=0;
+  setStatus('Syncing to Supabase...', true);
+  for(const entry of scanHistory){
+    try{
+      await saveToSupabase(entry.data, entry.meta, entry.id);
+      success++;
+    }catch(e){ failed++; }
+    setStatus('Syncing... '+success+' done', true);
+  }
+  setStatus('✓ Synced '+success+' records to Supabase'+(failed>0?' ('+failed+' failed)':''), false);
+  setTimeout(()=>setStatus('',false), 4000);
+}
+
 function backupData(){
   if(!scanHistory.length){alert('No data to back up yet.');return;}
   const backup={
