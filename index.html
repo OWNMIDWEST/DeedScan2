@@ -337,22 +337,7 @@
   .export-remind-badge { position: absolute; top: -6px; right: -6px; background: #c0392b; color: #fff; font-size: 9px; font-weight: 700; border-radius: 10px; padding: 2px 6px; white-space: nowrap; animation: badgepulse 1.5s ease-in-out infinite; pointer-events: none; z-index: 10; }
   @keyframes badgepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.75;transform:scale(1.08)} }
 
-  /* VISIT COUNTER */
-  .visit-section{margin:0 12px 8px;flex-shrink:0;}
-  .visit-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-  .visit-header{padding:6px 10px;background:#ddeaf6;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:#1a3a5c;display:flex;justify-content:space-between;align-items:center;user-select:none;cursor:pointer;}
-  .visit-body{display:none;flex-direction:column;}
-  .visit-body.open{display:flex;}
-  .visit-stat{padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;align-items:center;}
-  .visit-stat:last-child{border-bottom:none;}
-  .visit-stat-label{color:var(--muted);font-size:10px;}
-  .visit-stat-val{font-weight:600;color:#1a3a5c;font-size:11px;max-width:160px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .visit-log{max-height:140px;overflow-y:auto;}
-  .visit-log::-webkit-scrollbar{width:3px;}
-  .visit-log::-webkit-scrollbar-thumb{background:#c8d8e8;}
-  .visit-log-item{padding:5px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);}
-  .visit-log-item:last-child{border-bottom:none;}
-  .visit-log-item strong{color:var(--text);display:block;font-size:11px;}
+  /* VISIT COUNTER - popup style */
 
   /* DB SYNC */
   .sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap;}
@@ -540,21 +525,11 @@
       </div>
 
     <!-- VISIT COUNTER -->
-    <div class="visit-section">
-      <div class="visit-card">
-        <div class="visit-header" onclick="toggleVisitPanel()">
-          <span>Site Visits</span>
-          <span id="visitTotalBadge" style="background:rgba(26,58,92,0.1);color:#1a3a5c;font-size:10px;padding:1px 7px;border-radius:10px;">—</span>
-        </div>
-        <div class="visit-body" id="visitBody">
-          <div class="visit-stat"><span class="visit-stat-label">Total Visits</span><span class="visit-stat-val" id="visitTotal">—</span></div>
-          <div class="visit-stat"><span class="visit-stat-label">Browser / OS</span><span class="visit-stat-val" id="visitBrowser">—</span></div>
-          <div class="visit-stat"><span class="visit-stat-label">Your Location</span><span class="visit-stat-val" id="visitLocation">Detecting...</span></div>
-          <div class="visit-stat"><span class="visit-stat-label">Your IP</span><span class="visit-stat-val" id="visitIP">—</span></div>
-          <div style="padding:5px 10px;font-size:10px;font-weight:600;color:#1a3a5c;background:#f0f4f8;user-select:none;">Recent Visitors</div>
-          <div class="visit-log" id="visitLog"></div>
-        </div>
-      </div>
+    <div style="margin:0 12px 8px;flex-shrink:0;">
+      <button onclick="toggleVisitPanel()" style="width:100%;display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;">
+        <span style="font-size:10px;font-weight:600;color:#1a3a5c;letter-spacing:0.05em;text-transform:uppercase;">Site Visits</span>
+        <span id="visitTotalBadge" style="background:#1a3a5c;color:#fff;font-size:10px;font-weight:600;padding:2px 9px;border-radius:10px;">—</span>
+      </button>
     </div>
     </div>
   </div>
@@ -1602,9 +1577,15 @@ function renderHistoryPage(){
 
 // ── VISIT COUNTER ──
 function toggleVisitPanel(){
-  const body = document.getElementById('visitBody');
-  if(body) body.classList.toggle('open');
+  const overlay = document.getElementById('visitPopupOverlay');
+  if(!overlay) return;
+  overlay.style.display = overlay.style.display==='none' ? 'flex' : 'none';
 }
+// Close popup when clicking overlay background
+document.addEventListener('click', function(e){
+  const overlay = document.getElementById('visitPopupOverlay');
+  if(overlay && e.target === overlay) overlay.style.display='none';
+});
 
 function detectBrowser(){
   const ua = navigator.userAgent;
@@ -2069,5 +2050,22 @@ window.addEventListener('load', function(){
 
 });
 </script>
+<!-- VISIT POPUP -->
+<div id="visitPopupOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:420px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="background:#1a3a5c;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+      <span style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:#fff;">Site Visits</span>
+      <button onclick="document.getElementById('visitPopupOverlay').style.display='none';" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e0ebf5;flex-shrink:0;">
+      <div style="background:#fff;padding:10px 14px;"><div style="font-size:10px;color:#4a6880;text-transform:uppercase;letter-spacing:0.06em;">Total Visits</div><div style="font-size:22px;font-weight:700;color:#1a3a5c;" id="visitTotal">—</div></div>
+      <div style="background:#fff;padding:10px 14px;"><div style="font-size:10px;color:#4a6880;text-transform:uppercase;letter-spacing:0.06em;">Your Browser</div><div style="font-size:13px;font-weight:600;color:#1a3a5c;" id="visitBrowser">—</div></div>
+      <div style="background:#fff;padding:10px 14px;border-top:1px solid #e0ebf5;"><div style="font-size:10px;color:#4a6880;text-transform:uppercase;letter-spacing:0.06em;">Your Location</div><div style="font-size:13px;font-weight:600;color:#1a3a5c;" id="visitLocation">Detecting...</div></div>
+      <div style="background:#fff;padding:10px 14px;border-top:1px solid #e0ebf5;"><div style="font-size:10px;color:#4a6880;text-transform:uppercase;letter-spacing:0.06em;">Your IP</div><div style="font-size:13px;font-weight:600;color:#1a3a5c;" id="visitIP">—</div></div>
+    </div>
+    <div style="padding:8px 14px;font-size:10px;font-weight:600;color:#1a3a5c;background:#f0f4f8;border-top:1px solid #e0ebf5;border-bottom:1px solid #e0ebf5;user-select:none;flex-shrink:0;">Recent Visitors</div>
+    <div id="visitLog" style="overflow-y:auto;flex:1;"></div>
+  </div>
+</div>
 </body>
 </html>
