@@ -337,6 +337,23 @@
   .export-remind-badge { position: absolute; top: -6px; right: -6px; background: #c0392b; color: #fff; font-size: 9px; font-weight: 700; border-radius: 10px; padding: 2px 6px; white-space: nowrap; animation: badgepulse 1.5s ease-in-out infinite; pointer-events: none; z-index: 10; }
   @keyframes badgepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.75;transform:scale(1.08)} }
 
+  /* VISIT COUNTER */
+  .visit-section{margin:0 12px 8px;flex-shrink:0;}
+  .visit-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .visit-header{padding:6px 10px;background:#ddeaf6;border-bottom:1px solid var(--border);font-size:10px;font-weight:600;color:#1a3a5c;display:flex;justify-content:space-between;align-items:center;user-select:none;cursor:pointer;}
+  .visit-body{display:none;flex-direction:column;}
+  .visit-body.open{display:flex;}
+  .visit-stat{padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;align-items:center;}
+  .visit-stat:last-child{border-bottom:none;}
+  .visit-stat-label{color:var(--muted);font-size:10px;}
+  .visit-stat-val{font-weight:600;color:#1a3a5c;font-size:11px;max-width:160px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .visit-log{max-height:140px;overflow-y:auto;}
+  .visit-log::-webkit-scrollbar{width:3px;}
+  .visit-log::-webkit-scrollbar-thumb{background:#c8d8e8;}
+  .visit-log-item{padding:5px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);}
+  .visit-log-item:last-child{border-bottom:none;}
+  .visit-log-item strong{color:var(--text);display:block;font-size:11px;}
+
   /* DB SYNC */
   .sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap;}
   .sync-badge.synced{background:#dcfce7;color:#166534;border:1px solid #86efac;}
@@ -523,6 +540,24 @@
       </div>
     </div>
   </div>
+
+    <!-- VISIT COUNTER -->
+    <div class="visit-section">
+      <div class="visit-card">
+        <div class="visit-header" onclick="toggleVisitPanel()">
+          <span>Site Visits</span>
+          <span id="visitTotalBadge" style="background:rgba(26,58,92,0.1);color:#1a3a5c;font-size:10px;padding:1px 7px;border-radius:10px;">—</span>
+        </div>
+        <div class="visit-body" id="visitBody">
+          <div class="visit-stat"><span class="visit-stat-label">Total Visits</span><span class="visit-stat-val" id="visitTotal">—</span></div>
+          <div class="visit-stat"><span class="visit-stat-label">Browser / OS</span><span class="visit-stat-val" id="visitBrowser">—</span></div>
+          <div class="visit-stat"><span class="visit-stat-label">Your Location</span><span class="visit-stat-val" id="visitLocation">Detecting...</span></div>
+          <div class="visit-stat"><span class="visit-stat-label">Your IP</span><span class="visit-stat-val" id="visitIP">—</span></div>
+          <div style="padding:5px 10px;font-size:10px;font-weight:600;color:#1a3a5c;background:#f0f4f8;user-select:none;">Recent Visitors</div>
+          <div class="visit-log" id="visitLog"></div>
+        </div>
+      </div>
+    </div>
 
   <div class="right-panel">
     <div class="results-area">
@@ -788,6 +823,7 @@ const COUNTY_GIS = {
 window.onload=()=>{
   updateApiStatus(); updateLeftPanel(); renderHistoryPage(); initDBSettings(); checkExportReminder(); updateLastBackupLabel(); initUsageMeter(); initRestoreInput();
   loadFromSupabase();
+  recordAndLoadVisits();
   const dz=document.getElementById('dropZone');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
   dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
@@ -1563,21 +1599,126 @@ function renderHistoryPage(){
 
 }
 
+// ── VISIT COUNTER ──
+function toggleVisitPanel(){
+  const body = document.getElementById('visitBody');
+  if(body) body.classList.toggle('open');
+}
+
+function detectBrowser(){
+  const ua = navigator.userAgent;
+  if(ua.includes('Edg/')) return 'Microsoft Edge';
+  if(ua.includes('Chrome/')) return 'Chrome';
+  if(ua.includes('Firefox/')) return 'Firefox';
+  if(ua.includes('Safari/') && !ua.includes('Chrome')) return 'Safari';
+  if(ua.includes('OPR/') || ua.includes('Opera/')) return 'Opera';
+  return 'Unknown Browser';
+}
+
+function detectOS(){
+  const ua = navigator.userAgent;
+  if(ua.includes('Windows')) return 'Windows';
+  if(ua.includes('Mac OS')) return 'Mac';
+  if(ua.includes('iPhone')||ua.includes('iPad')) return 'iOS';
+  if(ua.includes('Android')) return 'Android';
+  if(ua.includes('Linux')) return 'Linux';
+  return 'Unknown OS';
+}
+
+async function recordAndLoadVisits(){
+  try{
+    // Get location from IP
+    let city='Unknown', country='Unknown', ip='Unknown';
+    try{
+      const geo = await fetch('https://ipapi.co/json/');
+      const gd = await geo.json();
+      city = gd.city||'Unknown';
+      country = gd.country_name||'Unknown';
+      ip = gd.ip||'Unknown';
+    }catch(e){}
+
+    const browser = detectBrowser();
+    const os = detectOS();
+    const visitData = {
+      visited_at: new Date().toISOString(),
+      browser: browser,
+      os: os,
+      city: city,
+      country: country,
+      ip: ip,
+      screen: window.screen.width+'x'+window.screen.height
+    };
+
+    // Update current session display
+    const el = document.getElementById('visitBrowser');
+    if(el) el.textContent = browser+' / '+os;
+    const locEl = document.getElementById('visitLocation');
+    if(locEl) locEl.textContent = city+', '+country;
+    const ipEl = document.getElementById('visitIP');
+    if(ipEl) ipEl.textContent = ip;
+
+    // Save to Supabase visits table
+    try{
+      await fetch(SUPABASE_URL+'/rest/v1/visits', {
+        method:'POST',
+        headers:{
+          'apikey':SUPABASE_KEY,
+          'Authorization':'Bearer '+SUPABASE_KEY,
+          'Content-Type':'application/json',
+          'Prefer':'return=minimal'
+        },
+        body: JSON.stringify(visitData)
+      });
+    }catch(e){ console.log('Visit save failed:', e); }
+
+    // Load recent visits
+    const res = await fetch(SUPABASE_URL+'/rest/v1/visits?order=visited_at.desc&limit=20', {
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}
+    });
+    const visits = await res.json();
+
+    if(visits && visits.length){
+      const total = document.getElementById('visitTotal');
+      const badge = document.getElementById('visitTotalBadge');
+      if(total) total.textContent = visits.length+(visits.length>=20?'+':'');
+      if(badge) badge.textContent = visits.length+(visits.length>=20?'+':'');
+
+      const log = document.getElementById('visitLog');
+      if(log){
+        log.innerHTML = visits.map(v=>{
+          const d = new Date(v.visited_at);
+          const dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+          const timeStr = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+          return `<div class="visit-log-item">
+            <strong>${v.city||'Unknown'}, ${v.country||'Unknown'}</strong>
+            ${v.browser||'Unknown'} / ${v.os||'Unknown'} &nbsp;·&nbsp; ${dateStr} ${timeStr}
+          </div>`;
+        }).join('');
+      }
+    }
+  }catch(e){ console.log('Visit tracker error:', e); }
+}
+
 // ── BACKUP & RESTORE ──
 async function syncAllToSupabase(){
   if(!scanHistory.length){alert('No records to sync.');return;}
   if(!confirm('Sync all '+scanHistory.length+' records to Supabase?\nThis may take a minute.'))return;
   let success=0, failed=0;
-  setStatus('Syncing to Supabase...', true);
-  for(const entry of scanHistory){
+  const btn = document.querySelector('button[onclick="syncAllToSupabase()"]');
+  if(btn){btn.textContent='Syncing...';btn.disabled=true;}
+  for(let i=0;i<scanHistory.length;i++){
+    const entry=scanHistory[i];
     try{
       await saveToSupabase(entry.data, entry.meta, entry.id);
       success++;
     }catch(e){ failed++; }
-    setStatus('Syncing... '+success+' done', true);
+    if(btn) btn.textContent='Syncing... '+success+'/'+scanHistory.length;
   }
-  setStatus('✓ Synced '+success+' records to Supabase'+(failed>0?' ('+failed+' failed)':''), false);
-  setTimeout(()=>setStatus('',false), 4000);
+  if(btn){btn.textContent='Sync All to Supabase';btn.disabled=false;}
+  const msg = failed>0
+    ? '✓ Synced '+success+' records.\n✗ '+failed+' failed — try again.'
+    : '✓ All '+success+' records synced to Supabase successfully!';
+  alert(msg);
 }
 
 function backupData(){
