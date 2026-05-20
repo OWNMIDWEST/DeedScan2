@@ -1801,9 +1801,13 @@ function exportBiddersCSV(){
     if(!grantee) return; // skip records with no grantee
 
     if(!counties[county]) counties[county] = {};
-    // Normalize name for grouping - trim, collapse spaces, uppercase
-    const normalizedGrantee = grantee.trim().replace(/\s+/g,' ').toUpperCase();
-    const key = normalizedGrantee + '||' + address.trim().toUpperCase();
+    // Normalize name only for grouping - ignore address variations
+    const normalizedGrantee = grantee.trim().replace(/\s+/g,' ').toUpperCase()
+      .replace(/[.,]/g,'')       // remove punctuation
+      .replace(/\bLLC\b/g,'LLC') // normalize LLC
+      .replace(/\bINC\b/g,'INC')
+      .replace(/\bCORP\b/g,'CORP');
+    const key = normalizedGrantee;
     if(!counties[county][key]){
       counties[county][key] = {
         grantee: grantee,
@@ -1814,6 +1818,10 @@ function exportBiddersCSV(){
     }
     if(mapNum && !counties[county][key].maps.includes(mapNum)){
       counties[county][key].maps.push(mapNum);
+    }
+    // Use longest/most complete address
+    if(address && address.length > counties[county][key].address.length){
+      counties[county][key].address = address;
     }
     // Add sale price to total
     const price = parseFloat((h.data['Sale Price']||'').replace(/[$,]/g,''));
