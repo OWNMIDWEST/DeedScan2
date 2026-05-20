@@ -1806,12 +1806,16 @@ function exportBiddersCSV(){
       counties[county][key] = {
         grantee: grantee,
         address: address,
-        maps: []
+        maps: [],
+        totalSpent: 0
       };
     }
     if(mapNum && !counties[county][key].maps.includes(mapNum)){
       counties[county][key].maps.push(mapNum);
     }
+    // Add sale price to total
+    const price = parseFloat((h.data['Sale Price']||'').replace(/[$,]/g,''));
+    if(!isNaN(price)) counties[county][key].totalSpent += price;
   });
 
   // Build CSV with a section per county
@@ -1833,19 +1837,20 @@ function exportBiddersCSV(){
 
   sortedCounties.forEach(function(county){
     // County section header
-    rows.push([county.toUpperCase() + ' COUNTY', '', ...mapHeaders.map(()=>'')]);
-    rows.push(['Bidder Name', 'Mailing Address', ...mapHeaders]);
+    rows.push([county.toUpperCase() + ' COUNTY', '', '', ...mapHeaders.map(()=>'')]);
+    rows.push(['Bidder Name', 'Mailing Address', 'Total Spent', ...mapHeaders]);
 
     // Sort bidders by name
     const bidders = Object.values(counties[county]).sort((a,b)=>b.maps.length-a.maps.length||a.grantee.localeCompare(b.grantee));
     bidders.forEach(function(b){
       const mapCols = [];
       for(let i=0; i<maxMaps; i++) mapCols.push(b.maps[i]||'');
-      rows.push([b.grantee, b.address, ...mapCols]);
+      const spent = b.totalSpent > 0 ? '$' + b.totalSpent.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+      rows.push([b.grantee, b.address, spent, ...mapCols]);
     });
 
     // Blank row between counties
-    rows.push(new Array(2 + maxMaps).fill(''));
+    rows.push(new Array(3 + maxMaps).fill(''));
   });
 
   const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
