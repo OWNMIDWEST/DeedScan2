@@ -611,6 +611,7 @@
     <span class="backup-bar-label">☁️ Supabase connected — data syncs automatically</span>
     <span class="backup-last" id="lastBackupLabel"></span>
     <button class="backup-btn" onclick="backupData()">Download Backup</button>
+    <button class="backup-btn" onclick="exportBiddersCSV()" style="background:#2a5a8c;">Bidders Report</button>
     <button class="backup-btn" onclick="syncAllToSupabase()" style="background:#2e7d52;">Sync All to Supabase</button>
     <label class="backup-btn restore" style="cursor:pointer;display:inline-flex;align-items:center;">
       Restore Backup
@@ -1784,6 +1785,73 @@ function exportCountyCSV(county){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='taxdeedscan_'+county.toLowerCase().replace(/ /g,'_')+'_county.csv';
+  a.click();
+}
+
+function exportBiddersCSV(){
+  if(!scanHistory.length){alert('No records to export.');return;}
+
+  // Group by county, then by grantee
+  const counties = {};
+  scanHistory.forEach(function(h){
+    const county = h.meta.county || 'Unknown';
+    const grantee = h.data['Grantee'] !== '—' ? h.data['Grantee'] : '';
+    const address = h.data['Grantee Address'] !== '—' ? h.data['Grantee Address'] : '';
+    const mapNum = h.data['Map #'] !== '—' ? h.data['Map #'] : '';
+    if(!grantee) return; // skip records with no grantee
+
+    if(!counties[county]) counties[county] = {};
+    const key = grantee + '||' + address;
+    if(!counties[county][key]){
+      counties[county][key] = {
+        grantee: grantee,
+        address: address,
+        maps: []
+      };
+    }
+    if(mapNum && !counties[county][key].maps.includes(mapNum)){
+      counties[county][key].maps.push(mapNum);
+    }
+  });
+
+  // Build CSV with a section per county
+  const rows = [];
+
+  // Add header row
+  // First find max number of map IDs across all bidders
+  let maxMaps = 1;
+  Object.values(counties).forEach(function(bidders){
+    Object.values(bidders).forEach(function(b){
+      if(b.maps.length > maxMaps) maxMaps = b.maps.length;
+    });
+  });
+
+  const mapHeaders = [];
+  for(let i=1; i<=maxMaps; i++) mapHeaders.push('Map ID ' + i);
+
+  const sortedCounties = Object.keys(counties).sort();
+
+  sortedCounties.forEach(function(county){
+    // County section header
+    rows.push([county.toUpperCase() + ' COUNTY', '', ...mapHeaders.map(()=>'')]);
+    rows.push(['Bidder Name', 'Mailing Address', ...mapHeaders]);
+
+    // Sort bidders by name
+    const bidders = Object.values(counties[county]).sort((a,b)=>b.maps.length-a.maps.length||a.grantee.localeCompare(b.grantee));
+    bidders.forEach(function(b){
+      const mapCols = [];
+      for(let i=0; i<maxMaps; i++) mapCols.push(b.maps[i]||'');
+      rows.push([b.grantee, b.address, ...mapCols]);
+    });
+
+    // Blank row between counties
+    rows.push(new Array(2 + maxMaps).fill(''));
+  });
+
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = 'taxdeedscan_bidders_report.csv';
   a.click();
 }
 
