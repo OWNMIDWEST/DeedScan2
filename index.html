@@ -1801,7 +1801,9 @@ function exportBiddersCSV(){
     if(!grantee) return; // skip records with no grantee
 
     if(!counties[county]) counties[county] = {};
-    const key = grantee + '||' + address;
+    // Normalize name for grouping - trim, collapse spaces, uppercase
+    const normalizedGrantee = grantee.trim().replace(/\s+/g,' ').toUpperCase();
+    const key = normalizedGrantee + '||' + address.trim().toUpperCase();
     if(!counties[county][key]){
       counties[county][key] = {
         grantee: grantee,
@@ -1841,7 +1843,7 @@ function exportBiddersCSV(){
     rows.push(['Bidder Name', 'Mailing Address', 'Total Spent', ...mapHeaders]);
 
     // Sort bidders by name
-    const bidders = Object.values(counties[county]).sort((a,b)=>b.maps.length-a.maps.length||a.grantee.localeCompare(b.grantee));
+    const bidders = Object.values(counties[county]).sort((a,b)=>b.totalSpent-a.totalSpent||a.grantee.localeCompare(b.grantee));
     bidders.forEach(function(b){
       const mapCols = [];
       for(let i=0; i<maxMaps; i++) mapCols.push(b.maps[i]||'');
