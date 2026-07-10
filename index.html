@@ -676,7 +676,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // verified by Supabase's auth server. After sign-in we use the returned user token for
 // all data requests, and RLS is set to allow only 'authenticated' — so the anon key
 // alone can no longer read or write the data.
-const SHARED_EMAIL = 'team@ownmidwest.com'; // <-- must match the shared user you create in Supabase
+const SHARED_EMAIL = 'joe@ownmidwest.com'; // <-- must match the shared user you create in Supabase
 let SB_BEARER  = SUPABASE_KEY;  // becomes the logged-in user's access token after sign-in
 let SB_REFRESH = null;
 
