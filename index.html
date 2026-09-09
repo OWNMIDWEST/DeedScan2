@@ -1012,7 +1012,7 @@ function setStatus(msg,loading){document.getElementById('statusMsg').textContent
 async function callAPI(asPDF){
   const pdfExtra=asPDF?'\n- This is a full PDF — extract County from the document header on the first page':'\n- This is a screenshot — County may not be visible, return "—" if not found';
   const prompt=`You are a real estate deed parser. Return ONLY raw JSON, no markdown, no explanation.
-RULES: Only extract what is visible. Use "—" for missing fields. Recorded Date: look for the clerk's official recording stamp in the top corner of the first page showing when it was filed at the county office — this is NOT the auction date and NOT today's date, return '—' if no stamp visible. Map # may be Tax Map Number/Parcel ID/TMS.${pdfExtra}
+RULES: Only extract what is visible. Use "—" for missing fields. Recorded Date: look for the clerk's official recording stamp in the top corner of the first page showing when it was filed at the county office — this is NOT the auction date and NOT today's date, return '—' if no stamp visible. Map # may be Tax Map Number/Parcel ID/TMS/Tax Map Reference #. Grantee Address: check ALL areas including top corners and header — often labeled GRANTEE'S ADDRESS in upper right of first page.${pdfExtra}
 Taxes Owed: look for delinquent tax amounts or tax liability near prior owner info.
 Return ONLY: {"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","Seller":"","Sale Price":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Taxes Owed":"","Property Address":"","County":"","Map #":"","Legal Description":""}`;
   const content=pageImages.map(b64=>({type:'image',source:{type:'base64',media_type:'image/png',data:b64}}));
