@@ -955,7 +955,8 @@ async function extractBatch(){
 
     try{
       await loadSingleFile(batchFiles[i]);
-      const parsed=await callAPI(isPDF);
+      const countyHint=document.getElementById('scanCounty').value||'';
+      const parsed=await callAPI(isPDF, countyHint);
       if(!parsed){
         batchResults[i].status='failed';
         batchResults[i].error='No data extracted';
@@ -1009,11 +1010,33 @@ async function extractBatch(){
 // ── SINGLE EXTRACT ──
 function setStatus(msg,loading){document.getElementById('statusMsg').textContent=msg;document.getElementById('loadingBar').classList.toggle('active',!!loading);}
 
-async function callAPI(asPDF){
+async function callAPI(asPDF, countyHint){
   const pdfExtra=asPDF?'\n- This is a full PDF — extract County from the document header on the first page':'\n- This is a screenshot — County may not be visible, return "—" if not found';
+  // County-specific extraction guides
+  const countyGuides = {
+    'Greenville': '\nGREENVILLE COUNTY: Recorded Date is in upper right stamp (format: Month DD YYYY HH:MM). Sale Price is after Cons: in stamp AND spelled out in body. Tax Sale Auction Date is in body text after on Sales Day the [date]. Grantee is after gave receipt to [NAME] the highest bidder. Prior Owner is the defaulting taxpayer in WHEREAS clause. Taxes Owed is dollar amount in WHEREAS clause taxes and costs in the amount of. Map# is on page 2 labeled Greenville County Tax Map#. Property Address is on page 2 labeled Property Address:. Grantee Address is on page 2 labeled Grantee Address:. Seller is Jarret Winget Tax Collector for Greenville County.',
+
+    'Spartanburg': '\nSPARTANBURG COUNTY: Recorded Date is in upper right stamp format Recorded N Pages on MM/DD/YYYY HH:MM:SS. Map# is on page 1 upper left labeled MAP REFERENCE # and ITEM #. Grantee Address is on page 1 upper right labeled GRANTEES ADDRESS. Prior Owner is on page 1 right side labeled Owner of Record / Defaulting Taxpayer. Taxes Owed is in body costs owed in the amount of. Tax Sale Auction Date is in body on sales day [date]. Grantee is in body sell to purchaser [NAME] hereinafter known as Grantee. Sale Price is in body for the sum of. Seller is Lee Weeks Delinquent Tax Collector for Spartanburg County. Property Address is in Exhibit A affidavit page.',
+
+    'Anderson': '\nANDERSON COUNTY: Recorded Date is in upper right header line format MM/DD/YYYY. Map# is on page 1 upper left labeled TAX MAP REFERENCE # and ITEM #. Grantee Address is on page 1 upper right labeled GRANTEES ADDRESS. Prior Owner is the defaulting taxpayer named in body text. Taxes Owed is in body costs owed in the amount of. Tax Sale Auction Date is in body on Sale Day the [date]. Grantee is in body sell to [NAME] hereinafter known as Grantee. Sale Price is in body the sum of. Seller is Jason P. Phillips Anderson County Treasurer. Property Address is in affidavit page located at [street].',
+
+    'Oconee': '\nOCONEE COUNTY: Document Type is DELINQUENT TAX SALE DEED. Recorded Date is in upper center stamp format Recorded MM/DD/YYYY at HH:MM:SS. Grantor/Seller is labeled Grantor at top of page 1 and signature page shows CORINNE POORE DELINQUENT TAX COLLECTOR. Grantee is labeled Grantee at top of page 1. Grantee Address is labeled Grantee Address at top of page 1. Map# is labeled Map Number at top right of page 1 and also 2. Tax Map Number in Execution table. Prior Owner is in Execution table labeled 1. Name of Defaulting Taxpayers. Tax Sale Auction Date is in Execution table labeled 8. Date of Delinquent Tax Sale. Sale Price is in Execution table labeled 10. Bid at Tax Sale. Taxes Owed is in Execution table labeled 11. Total taxes penalties and cost. Property Address is in legal description body text.',
+
+    'Pickens': '\nPICKENS COUNTY: Recorded Date is in the very first line at top of document format at MM/DD/YYYY at HH:MM:SS AM/PM. Map# is on page 1 upper left labeled TAX MAP REFERENCE #. Grantee Address is on page 1 upper right labeled GRANTEES ADDRESS. Prior Owner is the defaulting taxpayer named in body text. Taxes Owed is in body costs owed in the amount of. Tax Sale Auction Date is in body on Sales Day the [date]. Grantee is in body sell to [NAME] hereinafter known as grantee. Sale Price is in body for the sum of. Seller is April L. Carman Delinquent Tax Collector of Pickens County. Property Address is in legal description body text road name only.',
+
+    'Lexington': '\nLEXINGTON COUNTY: Document Type is TAX TITLE TO REAL ESTATE. Recorded Date is in upper right stamp format Month DD YYYY HH:MM:SS PM FILED IN LEXINGTON COUNTY SC. Prior Owner is in labeled table on page 2 labeled Defaulting Taxpayer. Tax Sale Auction Date is in body text [ordinal] day of [Month] [year]. Grantee is in body sell the same to [NAME] the purchaser and highest bidder. Sale Price is in body for the sum of [spelled out] ([dollar amount]). Seller is James R. Eckstrom Treasurer of Lexington County as Tax Collector. Map# is on page 3 in labeled table Tax Map Number. Grantee Address is on page 3 in labeled table Grantees Address. Property Address is in legal description body text parcel description only.',
+
+    'Richland': '\nRICHLAND COUNTY: Document Type is RICHLAND COUNTY TAX DEED shown as large header. Recorded Date is in very top instrument header line format Date Time MM/DD/YYYY HH:MM:SS. Grantee Address is labeled GRANTEES ADDRESS in upper right. Map# is labeled Tax Map Number to the right of STATE/COUNTY block. Prior Owner is the defaulting taxpayer named in body text with address block below name. Taxes Owed is in body costs owed in the amount of. Tax Sale Auction Date is in body [ordinal] day of [Month] [year]. Grantee is displayed in ALL CAPS centered in body text after property of [PRIOR OWNER] to. Sale Price is in body for the sum of. Seller is Kendra L. Dove Treasurer Tax Collector Richland County.',
+
+    'Aiken': '\nAIKEN COUNTY: Document Type is TITLE TO REAL ESTATE BY THE TAX COLLECTOR (DELINQUENT TAX SALE). Recorded Date is in upper right stamp labeled PRESENTED & RECORDED MM-DD-YYYY HH:MM AM. Map# is in upper left under AIKEN COUNTY ASSESSOR labeled Tax Map and also TMS # in legal description. Grantor/Seller is in Grantor box on page 1 - K. WARREN FULGHUM Tax Collector for Aiken County with address. Grantee is in Grantee box on page 1 - full name and address. Grantee Address is in Grantee box on page 1 below grantee name. Prior Owner is the defaulting taxpayer named in body text. Taxes Owed is in body the sum of [amount] taxes assessments penalties and costs. Tax Sale Auction Date is in body sell the above property on [date]. Sale Price is in body for the sum of and in NOW THEREFORE paragraph.',
+
+    'Charleston': '\nCHARLESTON COUNTY: Document Type is CHARLESTON COUNTY TAX DEED shown as large header. Recorded Date is on last Recorders Page labeled Date and Time - also barcode area shows date. Grantee Address is in upper right labeled Grantee Address with grantee name above it. Map# is labeled PIN in upper right of page 1. Prior Owner is the defaulting taxpayer named in body text and on Recorders Page as MAKER. Tax Sale Auction Date is in body on [date] during the usual hours of sale. Grantee is named in body text gave receipt to [NAME] the highest bidder and on Recorders Page as RECIPIENT. Sale Price is in body at such sale for the sum of. Seller is Edrian J. Trakas Delinquent Tax Collector. Taxes Owed may not appear explicitly in this format return dash if not found.',
+  };
+  const countyGuide = (countyHint && countyGuides[countyHint]) ? countyGuides[countyHint] : '';
+
   const prompt=`You are a real estate deed parser. Return ONLY raw JSON, no markdown, no explanation.
 RULES: Only extract what is visible. Use "—" for missing fields. Recorded Date: look for the clerk's official recording stamp in the top corner of the first page showing when it was filed at the county office — this is NOT the auction date and NOT today's date, return '—' if no stamp visible. Map # may be Tax Map Number/Parcel ID/TMS/Tax Map Reference #. Grantee Address: check ALL areas including top corners and header — often labeled GRANTEE'S ADDRESS in upper right of first page.${pdfExtra}
-Taxes Owed: look for delinquent tax amounts or tax liability near prior owner info.
+Taxes Owed: look for delinquent tax amounts or tax liability near prior owner info.${countyGuide}
 Return ONLY: {"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","Seller":"","Sale Price":"","Grantee":"","Grantee Address":"","Prior Owner(s)":"","Taxes Owed":"","Property Address":"","County":"","Map #":"","Legal Description":""}`;
   const content=pageImages.map(b64=>({type:'image',source:{type:'base64',media_type:'image/png',data:b64}}));
   content.push({type:'text',text:prompt});
@@ -1079,7 +1102,8 @@ async function extractData(){
   setStatus('Analyzing with AI...',true);
   document.getElementById('dupWarning').classList.remove('visible');
   try{
-    const parsed=await callAPI(isPDF);
+    const countyHint=document.getElementById('scanCounty').value||'';
+      const parsed=await callAPI(isPDF, countyHint);
     const county=document.getElementById('scanCounty').value;
     if(isPDF&&parsed['County']&&parsed['County']!=='—'){
       let det=parsed['County'].replace(/county/i,'').replace(/,?\s*sc/i,'').trim();
