@@ -1119,6 +1119,24 @@ Return ONLY: {"Document Type":"","Tax Sale Auction Date":"","Recorded Date":"","
 function normalizeFields(parsed){
   const req=['Document Type','Tax Sale Auction Date','Recorded Date','Seller','Sale Price','Grantee','Grantee Address','Prior Owner(s)','Taxes Owed','Property Address','County','Map #','Legal Description'];
   req.forEach(f=>{if(!parsed[f]||parsed[f]==='null'||parsed[f]===null)parsed[f]='—';});
+
+  // Validate Recorded Date — SC deeds are filed 12-18 months after auction
+  // If the recorded year matches the auction year, it's likely wrong
+  if(parsed['Recorded Date'] && parsed['Recorded Date']!=='—' &&
+     parsed['Tax Sale Auction Date'] && parsed['Tax Sale Auction Date']!=='—'){
+    const recMatch = String(parsed['Recorded Date']).match(/(20[0-9][0-9])/);
+    const aucMatch = String(parsed['Tax Sale Auction Date']).match(/(20[0-9][0-9])/);
+    if(recMatch && aucMatch){
+      const recYear = parseInt(recMatch[1]);
+      const aucYear = parseInt(aucMatch[1]);
+      // Recorded date should be at least 12 months after auction
+      // If they're the same year, something is wrong — clear recorded date
+      if(recYear <= aucYear){
+        console.warn('Recorded date year ('+recYear+') <= auction year ('+aucYear+') — likely wrong, clearing');
+        parsed['Recorded Date'] = '—';
+      }
+    }
+  }
 }
 
 function normalizeMap(m){
