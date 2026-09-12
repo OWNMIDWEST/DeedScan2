@@ -1022,8 +1022,19 @@ async function extractBatch(){
 
     try{
       await loadSingleFile(batchFiles[i]);
-      const countyHint=document.getElementById('scanCounty').value||'';
-      const parsed=await callAPI(isPDF, countyHint);
+      const batchCountyRaw=document.getElementById('scanCounty').value||'';
+      // Pre-detect county from PDF if not already selected
+      let batchCountyHint = batchCountyRaw;
+      if(!batchCountyHint && pageImages.length > 0){
+        const firstPage = atob(pageImages[0]).toLowerCase();
+        const SC_COUNTY_NAMES = ['Greenville','Spartanburg','Anderson','Oconee','Pickens','Lexington','Richland','Aiken','Charleston','Beaufort'];
+        for(const c of SC_COUNTY_NAMES){
+          if(firstPage.includes('county of '+c.toLowerCase())||firstPage.includes(c.toLowerCase()+' county')){
+            batchCountyHint = c; break;
+          }
+        }
+      }
+      const parsed=await callAPI(isPDF, batchCountyHint);
       if(!parsed){
         batchResults[i].status='failed';
         batchResults[i].error='No data extracted';
@@ -1097,7 +1108,7 @@ async function callAPI(asPDF, countyHint){
 
     'Aiken': '\nAIKEN COUNTY: Document Type is TITLE TO REAL ESTATE BY THE TAX COLLECTOR (DELINQUENT TAX SALE). Recorded Date is in upper right stamp labeled PRESENTED & RECORDED MM-DD-YYYY HH:MM AM. Map# is in upper left under AIKEN COUNTY ASSESSOR labeled Tax Map and also TMS # in legal description. Grantor/Seller is in Grantor box on page 1 - K. WARREN FULGHUM Tax Collector for Aiken County with address. Grantee is in Grantee box on page 1 - full name and address. Grantee Address is in Grantee box on page 1 below grantee name. Prior Owner is the defaulting taxpayer named in body text. Taxes Owed is in body the sum of [amount] taxes assessments penalties and costs. Tax Sale Auction Date is in body sell the above property on [date]. Sale Price is in body for the sum of and in NOW THEREFORE paragraph.',
 
-    'Beaufort': '\nBEAUFORT COUNTY: Document Type is TAX TITLE BY THE TREASURER NOT WARRANTY TITLE. Recorded Date: look ONLY at the upper right stamp block on page 1 — it shows DATE: MM/DD/YYYY HH:MM:SS — extract ONLY that date, do NOT use today date or any other date — this stamp is typically 2024 or 2025 NOT 2026. Seller is MARIA WALLS TREASURER OF BEAUFORT COUNTY. Prior Owner is defaulting taxpayer name in bold caps in WHEREAS clause. Taxes Owed is in body taxes and costs in the amount of. Tax Sale Auction Date is in body month of [Month] in the year [year] — this is typically 2023 or 2024. Grantee is in bold caps [NAME] the purchaser and the highest bidder in body text. Sale Price is in body for the sum of. Map#: use the DMP: value in the legal description section — format like R510 009 000 0538 00A4. Grantee Address is on the LAST PAGE under TO: heading — shows grantee name and full mailing address in caps — this is NOT the Beaufort County Treasurer address. Property Address is subdivision and lot description only.',
+    'Beaufort': '\nBEAUFORT COUNTY: Document Type is TAX TITLE BY THE TREASURER NOT WARRANTY TITLE. Recorded Date: look ONLY at the upper right stamp block on page 1 — it shows DATE: MM/DD/YYYY HH:MM:SS — extract ONLY that date. IGNORE: the ADD DMP Record date at top left, the deed signing date, the witness date, and any notary date. The stamp DATE field is the ONLY correct source. Seller is MARIA WALLS TREASURER OF BEAUFORT COUNTY. Prior Owner is defaulting taxpayer name in bold caps in WHEREAS clause. Taxes Owed is in body taxes and costs in the amount of. Tax Sale Auction Date is in body month of [Month] in the year [year] — this is typically 2023 or 2024. Grantee is in bold caps [NAME] the purchaser and the highest bidder in body text. Sale Price is in body for the sum of. Map#: use the DMP: value in the legal description section — format like R510 009 000 0538 00A4. Grantee Address is on the LAST PAGE under TO: heading — shows grantee name and full mailing address in caps — this is NOT the Beaufort County Treasurer address. Property Address is subdivision and lot description only.',
 
     'Charleston': '\nCHARLESTON COUNTY: Document Type is CHARLESTON COUNTY TAX DEED shown as large header. Recorded Date is on last Recorders Page labeled Date and Time - also barcode area shows date. Grantee Address is in upper right labeled Grantee Address with grantee name above it. Map# is labeled PIN in upper right of page 1. Prior Owner is the defaulting taxpayer named in body text and on Recorders Page as MAKER. Tax Sale Auction Date is in body on [date] during the usual hours of sale. Grantee is named in body text gave receipt to [NAME] the highest bidder and on Recorders Page as RECIPIENT. Sale Price is in body at such sale for the sum of. Seller is Edrian J. Trakas Delinquent Tax Collector. Taxes Owed may not appear explicitly in this format return dash if not found.',
   };
@@ -1189,8 +1200,21 @@ async function extractData(){
   setStatus('Analyzing with AI...',true);
   document.getElementById('dupWarning').classList.remove('visible');
   try{
-    const countyHint=document.getElementById('scanCounty').value||'';
-      const parsed=await callAPI(isPDF, countyHint);
+    const countyRaw=document.getElementById('scanCounty').value||'';
+    // Pre-detect county from page text if not selected
+    let countyHint = countyRaw;
+    if(!countyHint && pageImages.length > 0){
+      try{
+        const firstPageText = atob(pageImages[0]);
+        const SC_COUNTY_NAMES2 = ['Greenville','Spartanburg','Anderson','Oconee','Pickens','Lexington','Richland','Aiken','Charleston','Beaufort'];
+        for(const c of SC_COUNTY_NAMES2){
+          if(firstPageText.toLowerCase().includes('county of '+c.toLowerCase())||firstPageText.toLowerCase().includes(c.toLowerCase()+' county')){
+            countyHint = c; break;
+          }
+        }
+      }catch(e){}
+    }
+    const parsed=await callAPI(isPDF, countyHint);
     const county=document.getElementById('scanCounty').value;
     if(isPDF&&parsed['County']&&parsed['County']!=='—'){
       let det=parsed['County'].replace(/county/i,'').replace(/,?\s*sc/i,'').trim();
