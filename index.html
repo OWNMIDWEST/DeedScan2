@@ -186,6 +186,24 @@
   .action-btn.primary:hover{background:#2a5a8c;}
   .action-btn:disabled{opacity:0.35;cursor:not-allowed;}
 
+  /* REFERENCE PAGE */
+  #refPage{flex-direction:column;height:calc(100vh - 56px);background:var(--surface2);overflow-y:auto;}
+  .ref-header{padding:20px 28px 14px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+  .ref-title{font-family:'DM Serif Display',serif;font-size:1.4rem;color:#1a3a5c;margin-bottom:4px;}
+  .ref-sub{font-size:12px;color:var(--muted);}
+  .ref-body{padding:20px 28px;display:flex;flex-direction:column;gap:16px;}
+  .ref-county-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  .ref-county-header{background:#1a3a5c;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+  .ref-county-name{font-size:13px;font-weight:700;color:#fff;}
+  .ref-county-link{font-size:11px;color:#8ab4d4;text-decoration:none;background:rgba(255,255,255,0.1);padding:3px 10px;border-radius:5px;border:1px solid rgba(255,255,255,0.2);}
+  .ref-county-link:hover{background:rgba(255,255,255,0.2);color:#fff;}
+  .ref-county-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+  .ref-row{display:flex;align-items:flex-start;gap:10px;font-size:12px;}
+  .ref-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#4a6880;min-width:90px;padding-top:2px;}
+  .ref-value{color:var(--text);flex:1;line-height:1.5;}
+  .ref-term{display:inline-block;background:#f0f4f8;border:1px solid #c8d8e8;border-radius:5px;padding:2px 10px;font-family:monospace;font-size:12px;color:#1a3a5c;font-weight:600;}
+  .ref-note{font-size:11px;color:var(--muted);font-style:italic;}
+
   /* HISTORY PAGE */
   #historyPage{flex-direction:column;height:calc(100vh - 56px);max-height:calc(100vh - 56px);background:var(--surface2);overflow:hidden;}
   .hist-toolbar{display:flex;align-items:center;gap:8px;padding:12px 18px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
@@ -388,6 +406,7 @@
     <div style="display:flex;gap:4px;">
 <button style="padding:6px 24px;background:#fff;color:#1a3a5c;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;" id="btnScan">Scan</button>
 <button style="padding:6px 24px;background:rgba(255,255,255,0.15);color:#c8dff0;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;" id="btnHistory">History</button>
+<button style="padding:6px 24px;background:rgba(255,255,255,0.15);color:#c8dff0;border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-weight:600;cursor:pointer;font-family:inherit;" id="btnRef">ROD Guide</button>
 </div>
     <div class="api-pill" onclick="openModal()">
       <div class="api-dot" id="apiDot"></div>
@@ -573,6 +592,54 @@
     </div>
   </div>
 </main>
+</div>
+
+<!-- REFERENCE PAGE -->
+<div class="page" id="refPage">
+  <div class="ref-header">
+    <div class="ref-title">Register of Deeds Search Guide</div>
+    <div class="ref-sub">County-by-county instructions for finding tax deeds in the ROD system</div>
+  </div>
+  <div class="ref-body">
+
+    <div class="ref-county-card">
+      <div class="ref-county-header">
+        <span class="ref-county-name">Beaufort County</span>
+        <a class="ref-county-link" href="https://www.beaufortcountysc.gov/register-of-deeds/index.html" target="_blank">Open ROD ↗</a>
+      </div>
+      <div class="ref-county-body">
+        <div class="ref-row"><span class="ref-label">Search Term</span><span class="ref-value"><span class="ref-term">Treasurer</span></span></div>
+      </div>
+    </div>
+
+    <div class="ref-county-card">
+      <div class="ref-county-header">
+        <span class="ref-county-name">Spartanburg County</span>
+        <a class="ref-county-link" href="https://search.spartanburgdeeds.com/index.php" target="_blank">Open ROD ↗</a>
+      </div>
+      <div class="ref-county-body">
+        <div class="ref-row"><span class="ref-label">Search Term</span><span class="ref-value"><span class="ref-term">DELINQUENT TAX COLLECTOR</span></span></div>
+      </div>
+    </div>
+
+    <div class="ref-county-card">
+      <div class="ref-county-header">
+        <span class="ref-county-name">Greenville County</span>
+        <a class="ref-county-link" href="https://viewer.greenvillecounty.org/countyweb/loginDisplay.action?countyname=Greenville" target="_blank">Open ROD ↗</a>
+      </div>
+      <div class="ref-county-body">
+        <div class="ref-row"><span class="ref-label">Search Term</span><span class="ref-value"><span class="ref-term">TAX COLLECTOR</span></span></div>
+      </div>
+    </div>
+
+    <div class="ref-county-card" style="border-style:dashed;opacity:0.6;">
+      <div class="ref-county-header" style="background:#4a6880;">
+        <span class="ref-county-name">More counties coming soon...</span>
+        <span style="font-size:11px;color:#c8dff0;">Send county + link + search term to add</span>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <!-- HISTORY PAGE -->
@@ -829,15 +896,13 @@ function showPage2(p){
   });
   var target=document.getElementById(p+'Page');
   if(target){ target.classList.add('active'); }
-  var bs=document.getElementById('btnScan');
-  var bh=document.getElementById('btnHistory');
-  if(p==='scan'){
-    if(bs){bs.style.background='#fff';bs.style.color='#1a3a5c';}
-    if(bh){bh.style.background='rgba(255,255,255,0.15)';bh.style.color='#c8dff0';}
-  } else {
-    if(bh){bh.style.background='#fff';bh.style.color='#1a3a5c';}
-    if(bs){bs.style.background='rgba(255,255,255,0.15)';bs.style.color='#c8dff0';}
-  }
+  var btns = {scan:'btnScan',history:'btnHistory',ref:'btnRef'};
+  Object.values(btns).forEach(function(id){
+    var b=document.getElementById(id);
+    if(b){b.style.background='rgba(255,255,255,0.15)';b.style.color='#c8dff0';}
+  });
+  var activeBtn = document.getElementById(btns[p]);
+  if(activeBtn){activeBtn.style.background='#fff';activeBtn.style.color='#1a3a5c';}
 }
 
 function openModal(){document.getElementById('modalKeyInput').value=apiKey;document.getElementById('modalOverlay').classList.add('open');}
@@ -2261,6 +2326,11 @@ window.addEventListener('load', function(){
   if(bh) bh.addEventListener('click', function(){
     showPage2('history');
     if(typeof renderHistoryPage==='function') renderHistoryPage();
+  });
+
+  var bref = document.getElementById('btnRef');
+  if(bref) bref.addEventListener('click', function(){
+    showPage2('ref');
   });
 
 });
